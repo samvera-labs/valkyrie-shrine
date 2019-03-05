@@ -1,0 +1,29 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/ruby:2.6.1
+        environment:
+          BUNDLER_VERSION: 2.0.1
+    steps:
+      - checkout
+      - run:
+          name: Install Bundler 2.0.1
+          command: gem install --no-doc bundler:2.0.1
+      - restore_cache:
+         keys:
+           - bundle-{{ checksum "Gemfile" }}-{{ checksum "valkyrie-shrine.gemspec" }}
+           - bundle- # used if checksum fails
+      - run:
+          name: Install dependencies
+          command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs 4 --retry 3
+      - save_cache:
+          key: bundle-{{ checksum "Gemfile" }}-{{ checksum "valkyrie-shrine.gemspec" }}
+          paths:
+            - "vendor/bundle"
+      - run:
+          name: Run Rubocop
+          command: bundle exec rubocop
+      - run:
+          name: Run Specs
+          command: bundle exec rspec spec
