@@ -38,7 +38,7 @@ module Valkyrie
       # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
       #   on the shrine object and the file and result digests do not match
       def upload(file:, original_filename:, resource:, **upload_options)
-        identifier = path_generator.generate(resource: resource, file: file, original_filename: original_filename)
+        identifier = path_generator.generate(resource: resource, file: file, original_filename: original_filename).to_s
         shrine.upload(file, identifier, **upload_options)
         find_by(id: "#{PROTOCOL}#{identifier}").tap do |result|
           if verifier
