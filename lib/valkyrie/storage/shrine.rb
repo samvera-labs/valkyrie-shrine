@@ -10,7 +10,18 @@ module Valkyrie
 
       attr_reader :shrine, :verifier
 
-      def initialize(shrine_storage, verifier = nil)
+      class IDPathGenerator
+        def initialize(base_path: nil)
+          @base_path = base_path
+        end
+
+        def generate(resource:, file:, original_filename:)
+          resource.id.to_s
+        end
+      end
+
+      def initialize(shrine_storage, verifier = nil, path_generator = IDPathGenerator)
+        @path_generator = path_generator.new(base_path: "")
         @shrine = shrine_storage
         if verifier.nil?
           try_to_find_verifier
@@ -27,7 +38,7 @@ module Valkyrie
       # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
       #   on the shrine object and the file and result digests do not match
       def upload(file:, original_filename:, resource:, **upload_options)
-        identifier = resource.id.to_s
+        identifier = path_generator.generate(resource: resource, file: file, original_filename: original_filename)
         shrine.upload(file, identifier, **upload_options)
         find_by(id: "#{PROTOCOL}#{identifier}").tap do |result|
           if verifier
