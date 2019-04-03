@@ -8,7 +8,7 @@ module Valkyrie
     class Shrine
       PROTOCOL = 'shrine://'
 
-      attr_reader :shrine, :verifier
+      attr_reader :shrine, :verifier, :path_generator
 
       class IDPathGenerator
         def initialize(base_path: nil)
