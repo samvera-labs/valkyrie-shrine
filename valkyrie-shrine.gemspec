@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'aws-sdk-s3', '~> 1'
   spec.add_dependency 'shrine', '~> 2.0'
-  spec.add_dependency 'valkyrie', '~> 2.0.0.RC3'
+  spec.add_dependency 'valkyrie', '> 1.0'
 
   spec.add_development_dependency 'bixby', '~> 2.0.0.pre.beta1'
   spec.add_development_dependency 'bundler', '~> 2.0'
