@@ -3,6 +3,7 @@
 require 'bundler/setup'
 require 'simplecov'
 require 'coveralls'
+require 'pry'
 
 ENV['RACK_ENV'] = 'test'
 ENV['RAILS_ENV'] = 'test'

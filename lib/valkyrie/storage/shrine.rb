@@ -38,6 +38,9 @@ module Valkyrie
       # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
       #   on the shrine object and the file and result digests do not match
       def upload(file:, original_filename:, resource:, **upload_options)
+        # S3 adapter validates options, so we have to remove this one used in
+        # the shared specs.
+        upload_options.delete(:fake_upload_argument)
         identifier = path_generator.generate(resource: resource, file: file, original_filename: original_filename).to_s
         shrine.upload(file, identifier, **upload_options)
         find_by(id: "#{PROTOCOL}#{identifier}").tap do |result|
@@ -52,6 +55,7 @@ module Valkyrie
       # @return [Valkyrie::StorageAdapter::StreamFile]
       # @raise Valkyrie::StorageAdapter::FileNotFound if nothing is found
       def find_by(id:)
+        raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id))
         Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s), io: shrine.open(shrine_id_for(id)))
       rescue Aws::S3::Errors::NoSuchKey
         raise Valkyrie::StorageAdapter::FileNotFound
