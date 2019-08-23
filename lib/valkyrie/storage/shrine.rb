@@ -8,7 +8,7 @@ module Valkyrie
     class Shrine
       PROTOCOL = 'shrine://'
 
-      attr_reader :shrine, :verifier, :path_generator
+      attr_reader :shrine, :verifier, :path_generator, :identifier_prefix
 
       class IDPathGenerator
         def initialize(base_path: nil)
@@ -20,9 +20,10 @@ module Valkyrie
         end
       end
 
-      def initialize(shrine_storage, verifier = nil, path_generator = IDPathGenerator)
+      def initialize(shrine_storage, verifier = nil, path_generator = IDPathGenerator, identifier_prefix: nil)
         @path_generator = path_generator.new(base_path: "")
         @shrine = shrine_storage
+        @identifier_prefix = identifier_prefix
         if verifier.nil?
           try_to_find_verifier
         else
@@ -43,7 +44,7 @@ module Valkyrie
         upload_options.delete(:fake_upload_argument)
         identifier = path_generator.generate(resource: resource, file: file, original_filename: original_filename).to_s
         shrine.upload(file, identifier, **upload_options)
-        find_by(id: "#{PROTOCOL}#{identifier}").tap do |result|
+        find_by(id: "#{protocol_with_prefix}#{identifier}").tap do |result|
           if verifier
             raise Valkyrie::Shrine::IntegrityError unless verifier.verify_checksum(file, result)
           end
@@ -64,7 +65,7 @@ module Valkyrie
       # @param id [Valkyrie::ID]
       # @return [Boolean] true if this adapter can handle this type of identifier
       def handles?(id:)
-        id.to_s.start_with?(PROTOCOL)
+        id.to_s.start_with?(protocol_with_prefix)
       end
 
       # Delete the file in S3 associated with the given identifier.
@@ -81,7 +82,11 @@ module Valkyrie
         end
 
         def shrine_id_for(id)
-          id.to_s.sub(/^#{PROTOCOL}/, '')
+          id.to_s.sub(/^#{protocol_with_prefix}/, '')
+        end
+
+        def protocol_with_prefix
+          [identifier_prefix, PROTOCOL].compact.join("-")
         end
     end
   end
