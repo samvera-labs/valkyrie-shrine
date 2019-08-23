@@ -4,6 +4,7 @@ require 'spec_helper'
 require 'valkyrie'
 require 'valkyrie/specs/shared_specs'
 require 'shrine/storage/s3'
+require 'action_dispatch'
 include ActionDispatch::TestProcess
 
 RSpec.describe Valkyrie::Storage::Shrine do
