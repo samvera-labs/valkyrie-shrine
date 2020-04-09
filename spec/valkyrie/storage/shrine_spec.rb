@@ -17,6 +17,30 @@ RSpec.describe Valkyrie::Storage::Shrine do
     client.create_bucket(bucket: 'my-bucket')
   end
 
+  describe "delayed access" do
+    before do
+      class ExampleResource < Valkyrie::Resource
+      end
+      class NullVerifier
+        def self.verify_checksum(_io, _result)
+          true
+        end
+      end
+    end
+    let(:verifier) { NullVerifier }
+    after do
+      Object.send(:remove_const, :ExampleResource)
+    end
+    it "only reads from the client when the content is actually read out" do
+      allow(s3_adapter).to receive(:open).and_call_original
+      uploaded_file = storage_adapter.upload(file: file, original_filename: 'foo.jpg', resource: ExampleResource.new, fake_upload_argument: true)
+
+      expect(s3_adapter).not_to have_received(:open)
+      uploaded_file.read
+      expect(s3_adapter).to have_received(:open)
+    end
+  end
+
   context 'Default verifier' do
     let(:verifier) { nil }
 
