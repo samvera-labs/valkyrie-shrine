@@ -20,6 +20,27 @@ module Valkyrie
         end
       end
 
+      class DelayedDownload
+        attr_reader :shrine, :id
+        def initialize(shrine, id)
+          @shrine = shrine
+          @id = id
+        end
+
+        def file
+          @file ||= shrine.open(id)
+        end
+
+        def method_missing(meth_name, *args, &block)
+          return super unless file.respond_to?(meth_name)
+          file.send(meth_name, *args, &block)
+        end
+
+        def respond_to_missing?(meth_name, include_private = false)
+          file.respond_to?(meth_name) || super
+        end
+      end
+
       def initialize(shrine_storage, verifier = nil, path_generator = IDPathGenerator, identifier_prefix: nil)
         @path_generator = path_generator.new(base_path: "")
         @shrine = shrine_storage
@@ -57,7 +78,7 @@ module Valkyrie
       # @raise Valkyrie::StorageAdapter::FileNotFound if nothing is found
       def find_by(id:)
         raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id))
-        Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s), io: shrine.open(shrine_id_for(id)))
+        Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s), io: DelayedDownload.new(shrine, shrine_id_for(id)))
       rescue Aws::S3::Errors::NoSuchKey
         raise Valkyrie::StorageAdapter::FileNotFound
       end
