@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency 'bixby', '~> 2.0.0.pre.beta1'
   spec.add_development_dependency 'bundler', '~> 2.0'
-  spec.add_development_dependency 'coveralls'
+  spec.add_development_dependency 'coveralls', '~> 0.8.3'
   spec.add_development_dependency 'pry'
   spec.add_development_dependency 'pry-byebug'
   spec.add_development_dependency 'rake', '~> 10.0'
