@@ -33,7 +33,7 @@ RSpec.describe Valkyrie::Storage::Shrine do
     end
     it "only reads from the client when the content is actually read out" do
       allow(s3_adapter).to receive(:open).and_call_original
-      uploaded_file = storage_adapter.upload(file: file, original_filename: 'foo.jpg', resource: ExampleResource.new, fake_upload_argument: true)
+      uploaded_file = storage_adapter.upload(file: file, original_filename: 'foo.jpg', resource: ExampleResource.new(id: 'fake_id'), fake_upload_argument: true)
 
       expect(s3_adapter).not_to have_received(:open)
       uploaded_file.read
