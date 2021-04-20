@@ -16,7 +16,8 @@ module Valkyrie
         end
 
         def calculate_checksum(result)
-          result.io.data[:object].data.etag.delete('"')
+          result.io.data[:object]&.data&.etag&.delete('"') ||
+            checksum_for(result.io)
         end
 
         def checksum_for(io)
