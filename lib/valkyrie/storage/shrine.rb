@@ -2,6 +2,7 @@
 
 require 'shrine'
 require 'digest/md5'
+require 'securerandom'
 
 module Valkyrie
   module Storage
@@ -11,12 +12,20 @@ module Valkyrie
       attr_reader :shrine, :verifier, :path_generator, :identifier_prefix
 
       class IDPathGenerator
-        def initialize(base_path: nil)
-          @base_path = base_path
-        end
+        def initialize(base_path: nil); end
 
+        # @return [String]
         def generate(resource:, file:, original_filename:)
-          resource.id.to_s
+          # Because Valkyrie has to maintain compatibility with ActiveFedora via
+          # the wings adapter, the file passed to #upload has to be saved before
+          # its associated FileMetadata; this means that the resource provided
+          # here is the parent FileSet rather than the FileMetadata object.  As
+          # a result, when we upload derivatives (like thumbnails) we have to
+          # pass the same resource as for the original file.  If we relied on
+          # the resource.id to generate the ID for the StreamFile here, that
+          # would result in derivative uploads overwriting their originals.
+          # Thus we use a UUID, prefixed by the resource ID.
+          "#{resource.id}/#{SecureRandom.uuid}"
         end
       end
 
