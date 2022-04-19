@@ -16,7 +16,7 @@ module Valkyrie
         end
 
         def generate(resource:, file:, original_filename:)
-          resource.id.to_s
+          Pathname.new(@base_path).join(resource.id).join(File.basename(original_filename))
         end
       end
 
