@@ -29,11 +29,11 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency 'bixby', '~> 2.0.0.pre.beta1'
   spec.add_development_dependency 'bundler', '~> 2.0'
-  spec.add_development_dependency 'coveralls', '~> 0.8.3'
   spec.add_development_dependency 'pry'
   spec.add_development_dependency 'pry-byebug'
   spec.add_development_dependency 'rake', '>= 12.3.3'
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'simplecov'
   spec.add_development_dependency 'actionpack'
+  spec.add_development_dependency 'webmock'
 end

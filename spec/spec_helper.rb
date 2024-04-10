@@ -2,25 +2,20 @@
 
 require 'bundler/setup'
 require 'simplecov'
-require 'coveralls'
 require 'pry'
 
 ENV['RACK_ENV'] = 'test'
 ENV['RAILS_ENV'] = 'test'
-Coveralls.wear!
-SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new(
-  [
-    SimpleCov::Formatter::HTMLFormatter,
-    Coveralls::SimpleCov::Formatter
-  ]
-)
 SimpleCov.start do
   add_filter 'spec'
   add_filter 'vendor'
+  minimum_coverage 100
 end
 
 require 'valkyrie/shrine'
+require 'webmock/rspec'
 
+WebMock.disable_net_connect!(allow_localhost: true)
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"

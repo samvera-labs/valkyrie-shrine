@@ -3,7 +3,7 @@
 [Shrine](http://shrinerb.com/) storage adapter for [Valkyrie](https://github.com/samvera-labs/valkyrie).
 
 [![CircleCI](https://circleci.com/gh/samvera-labs/valkyrie-shrine.svg?style=svg)](https://circleci.com/gh/samvera-labs/valkyrie-shrine)
-[![Coverage Status](https://coveralls.io/repos/github/samvera-labs/valkyrie-shrine/badge.svg?branch=master)](https://coveralls.io/github/samvera-labs/valkyrie-shrine?branch=master)
+![Coverage Status](https://img.shields.io/badge/Coverage-100-brightgreen.svg)
 
 ## Installation
 
