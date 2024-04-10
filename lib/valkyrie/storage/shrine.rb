@@ -104,6 +104,12 @@ module Valkyrie
         shrine.delete(shrine_id_for(id))
       end
 
+      # @param feature [Symbol] Feature to test for.
+      # @return [Boolean] true if the adapter supports the given feature
+      def supports?(_feature)
+        false
+      end
+
       private
 
         def try_to_find_verifier

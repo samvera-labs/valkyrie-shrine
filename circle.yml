@@ -7,6 +7,7 @@ jobs:
           BUNDLER_VERSION: 2.0.1
     steps:
       - checkout
+      - run: apt update -y && apt-get install -y lsof
       - run:
           name: Install Bundler 2.0.1
           command: gem install --no-doc bundler:2.0.1
