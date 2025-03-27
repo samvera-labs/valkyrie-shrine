@@ -8,13 +8,32 @@ require 'action_dispatch'
 include ActionDispatch::TestProcess
 
 RSpec.describe Valkyrie::Storage::Shrine do
-  let(:s3_adapter) { Shrine::Storage::S3.new(bucket: "my-bucket", client: client, identifier_prefix: "1234") }
-  let(:storage_adapter) { described_class.new(s3_adapter, verifier) }
+  let(:s3_adapter) { Shrine::Storage::S3.new(bucket: "my-bucket", client: client) }
+  let(:storage_adapter) { described_class.new(s3_adapter, verifier, identifier_prefix: "1234") }
   let(:file) { fixture_file_upload('files/example.tif', 'image/tiff') }
   let(:client) { S3Helper.new.client }
 
   before do
     client.create_bucket(bucket: 'my-bucket')
+  end
+
+  describe "protocol" do
+    let(:verifier) { nil }
+
+    describe 'without an identifier prefix' do
+      let(:storage_adapter) { described_class.new(s3_adapter, verifier) }
+
+      it 'returns PROTOCOL' do
+        expect(storage_adapter.protocol).to eq(described_class::PROTOCOL)
+      end
+    end
+
+    describe 'with an identifier prefix' do
+      it 'returns PROTOCOL qualified with the identifier prefix' do
+        expected_protocol = "#{storage_adapter.identifier_prefix}-#{described_class::PROTOCOL}"
+        expect(storage_adapter.protocol).to eq(expected_protocol)
+      end
+    end
   end
 
   describe "delayed access" do
