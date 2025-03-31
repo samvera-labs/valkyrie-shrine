@@ -31,7 +31,7 @@ module Valkyrie
       # @param id [Valkyrie::ID]
       # @return [Array(Valkyrie::Storage::VersionedShrine::VersionId)]
       def find_versions(id:)
-        version_files(id:).reject { |version| version.deletion_marker? }
+        version_files(id: id).reject(&:deletion_marker?)
       end
 
       # Retireve all file versions associated with the given identifier from S3
@@ -39,9 +39,9 @@ module Valkyrie
       # @return [Array(Valkyrie::Storage::VersionedShrine::VersionId)]
       def version_files(id:)
         shrine.list_object_ids(id_prefix: shrine_id_for(id))
-          .sort
-          .reverse
-          .map { |v| VersionId.new(Valkyrie::ID.new(protocol_with_prefix + v)) }
+              .sort
+              .reverse
+              .map { |v| VersionId.new(Valkyrie::ID.new(protocol_with_prefix + v)) }
       end
 
       # Upload a new version file
@@ -70,10 +70,10 @@ module Valkyrie
         return [] if version_id.deletion_marker?
 
         delete_ids = if version_id.versioned?
-          [id]
-        else
-          find_versions(id: id).map(&:id)
-        end
+                       [id]
+                     else
+                       find_versions(id: id).map(&:id)
+                     end
 
         delete_ids.map do |delete_id|
           delete_id = version_id(delete_id).version_id # convert id with current reference.
@@ -104,7 +104,7 @@ module Valkyrie
       def version_id(id)
         id = VersionId.new(id)
         return id unless id.versioned? && id.reference?
-        find_versions(id:).first
+        find_versions(id: id).first
       end
 
       # A class that holds a version id and methods for knowing things about it.
@@ -133,7 +133,7 @@ module Valkyrie
         end
 
         def current_timestamp
-          Time.now.strftime("%s%L")
+          Time.now.utc.strftime("%s%L")
         end
 
         def deletion_marker?

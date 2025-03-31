@@ -20,7 +20,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     end
     class NullVerifier
       def self.verify_checksum(_io, _result)
-          true
+        true
       end
     end
     client.create_bucket(bucket: 'my-bucket')

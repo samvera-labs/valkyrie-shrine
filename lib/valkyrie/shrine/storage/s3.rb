@@ -14,7 +14,7 @@ module Valkyrie
         # @return [Array(String)]
         def list_object_ids(id_prefix:)
           bucket.objects(prefix: [*prefix, id_prefix].join("/"))
-            .map { |obj| obj.key.gsub(*prefix || "", "") }
+                .map { |obj| obj.key.gsub(*prefix || "", "") }
         end
       end
     end
