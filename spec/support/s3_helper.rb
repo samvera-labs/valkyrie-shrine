@@ -15,6 +15,24 @@ class S3Helper
     }
   end
 
+  def copy_object
+    lambda { |context|
+      bucket = context.params[:bucket]
+      key = context.params[:key]
+      copy_source = context.params[:copy_source]
+      source_bucket = copy_source.split("/", 2).first
+      source_bucket_contents = s3_cache[source_bucket]
+      bucket_contents = s3_cache[bucket]
+
+      return "NoSuchBucket" unless bucket_contents && source_bucket_contents
+      source_key = copy_source.split("/", 2).last
+      source = source_bucket_contents[source_key]
+      return "NoSuchKey" unless source
+      bucket_contents[key] = source
+      { copy_object_result: { etag: source[:etag], last_modified: source[:last_modified] } }
+    }
+  end
+
   def delete_object
     lambda { |context|
       bucket = context.params[:bucket]
@@ -31,7 +49,7 @@ class S3Helper
       bucket_contents = s3_cache[bucket]
       return 'NoSuchBucket' unless bucket_contents
       obj = bucket_contents[key]
-      obj ? { etag: %("#{Digest::MD5.hexdigest(obj)}"), content_length: obj.size } : 'NoSuchKey'
+      obj ? { etag: obj[:etag], content_length: obj[:content_length], last_modified: obj[:last_modified] } : { status_code: 404, headers: {}, body: '' }
     }
   end
 
@@ -42,7 +60,7 @@ class S3Helper
       bucket_contents = s3_cache[bucket]
       return 'NoSuchBucket' unless bucket_contents
       obj = bucket_contents[key]
-      obj ? { body: obj, etag: %("#{Digest::MD5.hexdigest(obj)}"), content_length: obj.size } : 'NoSuchKey'
+      obj || 'NoSuchKey'
     }
   end
 
@@ -54,8 +72,21 @@ class S3Helper
       content = body.respond_to?(:read) ? body.read : body
       bucket_contents = s3_cache[bucket]
       return 'NoSuchBucket' unless bucket_contents
-      bucket_contents[key] = content
+      etag = %("#{Digest::MD5.hexdigest(content || '')}")
+      obj = { body: content, etag: etag, content_length: (content || '').size, last_modified: Time.now.utc }
+      bucket_contents[key] = obj
       {}
+    }
+  end
+
+  def list_objects_v2
+    lambda { |context|
+      bucket = context.params[:bucket]
+      prefix = context.params[:prefix]
+      bucket_contents = s3_cache[bucket]
+      return "NoSuchBucket" unless bucket_contents
+      { contents: bucket_contents.select { |k, _v| k.start_with?(prefix) }
+                                 .map { |k, _v| { key: k } } }
     }
   end
 
@@ -63,8 +94,10 @@ class S3Helper
     Aws::S3::Client.new(
       stub_responses: {
         create_bucket: create_bucket,
+        copy_object: copy_object,
         delete_object: delete_object,
         head_object: head_object,
+        list_objects_v2: list_objects_v2,
         get_object: get_object,
         put_object: put_object
       }
