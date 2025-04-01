@@ -159,7 +159,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
         expect(storage_adapter.version_files(id: uploaded_file.id).size).to eq(2)
         expect(storage_adapter.delete(id: uploaded_file.id).map(&:id).map(&:id))
           .to contain_exactly("#{version_files.first.id}-deletionmarker",
-            "#{version_files.last.id}-deletionmarker")
+                              "#{version_files.last.id}-deletionmarker")
       end
     end
   end
