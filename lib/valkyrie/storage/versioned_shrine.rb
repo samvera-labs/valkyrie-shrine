@@ -102,9 +102,10 @@ module Valkyrie
       # @return VersionId A VersionId value that's resolved a current reference,
       #   so we can access the `version_id` and current reference.
       def version_id(id)
-        id = VersionId.new(id)
-        return id unless id.versioned? && id.reference?
-        find_versions(id: id).first
+        version_id = VersionId.new(id)
+        return version_id unless version_id.versioned? && version_id.reference?
+        file_identifier = id.to_s.split(VersionId::VERSION_PREFIX).first
+        find_versions(id: Valkyrie::ID.new(file_identifier)).first
       end
 
       # A class that holds a version id and methods for knowing things about it.

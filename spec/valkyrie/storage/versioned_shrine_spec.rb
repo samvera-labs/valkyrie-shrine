@@ -163,4 +163,31 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
       end
     end
   end
+
+  describe "#version_id" do
+    subject(:version_id) { storage_adapter.version_id(id) }
+
+    before do
+      uploaded_file
+      uploaded_version
+    end
+
+    context "with a versioned ID" do
+      let(:id) { uploaded_version.id }
+
+      it "returns the versioned ID" do
+        expect(version_id).to be_a(Valkyrie::Storage::VersionedShrine::VersionId)
+        expect(version_id.id).to eq(uploaded_version.id)
+      end
+    end
+
+    context "converts a referenced version ID" do
+      let(:id) { Valkyrie::ID.new("#{uploaded_version.id.to_s.split('v-').first}_v-current") }
+
+      it "returns the latest versioned ID" do
+        expect(version_id).to be_a(Valkyrie::Storage::VersionedShrine::VersionId)
+        expect(version_id.id).to eq(uploaded_version.id)
+      end
+    end
+  end
 end
