@@ -59,12 +59,24 @@ class S3Helper
     }
   end
 
+  def list_objects_v2
+    lambda { |context|
+      bucket = context.params[:bucket]
+      prefix = context.params[:prefix]
+      bucket_contents = s3_cache[bucket]
+      return "NoSuchBucket" unless bucket_contents
+      { contents: bucket_contents.select { |k, _v| k.start_with?(prefix) }
+                                 .map { |k, _v| { key: k } } }
+    }
+  end
+
   def client
     Aws::S3::Client.new(
       stub_responses: {
         create_bucket: create_bucket,
         delete_object: delete_object,
         head_object: head_object,
+        list_objects_v2: list_objects_v2,
         get_object: get_object,
         put_object: put_object
       }
