@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 RSpec.describe Valkyrie::Shrine::Storage::S3 do
-  let(:instance) { Valkyrie::Shrine::Storage::S3.new(bucket: bucket, client: s3_client, prefix: storage_prefix) }
+  let(:instance) { described_class.new(bucket: bucket, client: s3_client, prefix: storage_prefix) }
 
   let(:bucket) { "my-bucket" }
   let(:s3_helper) { S3Helper.new }
