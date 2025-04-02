@@ -2,9 +2,9 @@
 
 module Valkyrie
   module Storage
-    # The VersionedShrine adapter implements versioned storage on S3 through Shrine
-    # the timestamp of the file's creation as part of the key for the file on S3
-    # ([resource_id]/[UUID]_v-timestamp).
+    # The VersionedShrine adapter implements versioned storage on S3 through Shrine with
+    # the last_modify time of the file as part of the object id/key on S3 like
+    # shrine://[resource_id]/[UUID]_v-[timestamp].
     #
     # Example to use VersionedShrine storage adapter:
     #    shrine_s3_options = {
@@ -52,13 +52,16 @@ module Valkyrie
         # the shared specs.
         upload_options.delete(:fake_upload_argument)
 
-        version_identifier = shrine_id_for(VersionId.new(id).generate_version)
-        shrine.upload(file, version_identifier, **upload_options)
-        find_by(id: "#{protocol_with_prefix}#{version_identifier}").tap do |result|
+        versioned_shrine_id = shrine_id_for(VersionId.new(id).generate_version.id)
+        shrine.upload(file, versioned_shrine_id, **upload_options)
+        find_by(id: "#{protocol_with_prefix}#{versioned_shrine_id}").tap do |result|
           if verifier
             raise Valkyrie::Shrine::IntegrityError unless verifier.verify_checksum(file, result)
           end
-          # TODO: move/change the original file with the basic file identifier to version file?
+
+          # If file associated with the given identifier is not a versioned file,
+          #   convert it to a versioned file basing on last_modified time.
+          to_version_file(id: id)
         end
       end
 
@@ -108,6 +111,21 @@ module Valkyrie
         find_versions(id: Valkyrie::ID.new(file_identifier)).first
       end
 
+      # Convert a non-versioned file to a version file basing on its last_modified time.
+      # @param id [Valkyrie::ID]
+      def to_version_file(id:)
+        version_id = VersionId.new(id)
+        shrine_id = shrine_id_for(id)
+        shrine_object = shrine.object(shrine_id)
+
+        return if version_id.versioned? || !shrine_object.exists?
+
+        last_modified = shrine_object.last_modified
+        versioned_shrine_id = shrine_id_for(version_id.generate_version(timestamp: last_modified).version_id)
+        source_object = Aws::S3::Object.new(shrine.bucket.name, shrine_id, client: shrine.client)
+        source_object.move_to("#{shrine.bucket.name}/#{versioned_shrine_id}")
+      end
+
       # A class that holds a version id and methods for knowing things about it.
       # Examples of version ids in this adapter:
       #   * shrine://[resource_id]/[uuid]_v-current
@@ -123,10 +141,19 @@ module Valkyrie
           @id = id
         end
 
-        # generate new version identifier basing on the current identifier,
-        # which ould be a version identifier or the orignal form [file_set_id]/[uuid].
-        def generate_version
-          versioned? ? string_id.gsub(version, current_timestamp) : string_id.gsub(version, version + VERSION_PREFIX + current_timestamp)
+        # Generate new version identifier basing on the given identifier, which could be the original file identifier like
+        #   shrine://[resource_id]/[uuid], or a version identifier like shrine://[resource_id]/[uuid]_v-1694195675462560794.
+        # @param timestamp [Time]
+        # @return [VersionID]
+        def generate_version(timestamp: nil)
+          version_timestam = timestamp.respond_to?(:strftime) ? timestamp.strftime("%s%L") : timestamp || current_timestamp
+          id_string = if versioned?
+                        string_id.gsub(version, version_timestam)
+                      else
+                        string_id.gsub(version, version + VERSION_PREFIX + version_timestam)
+                      end
+
+          self.class.new(Valkyrie::ID.new(id_string))
         end
 
         def current_reference_id

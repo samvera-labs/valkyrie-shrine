@@ -8,9 +8,11 @@ require 'action_dispatch'
 include ActionDispatch::TestProcess
 
 RSpec.describe Valkyrie::Storage::VersionedShrine do
-  let(:s3_adapter) { Valkyrie::Shrine::Storage::S3.new(bucket: "my-bucket", client: client) }
+  let(:s3_adapter) { Valkyrie::Shrine::Storage::S3.new(bucket: s3_bucket, client: s3_client) }
   let(:storage_adapter) { described_class.new(s3_adapter, verifier, identifier_prefix: identifier_prefix) }
-  let(:client) { S3Helper.new.client }
+
+  let(:s3_bucket) { "my-bucket" }
+  let(:s3_client) { S3Helper.new.client }
 
   let(:protocol) { Valkyrie::Storage::Shrine::PROTOCOL }
   let(:identifier_prefix) { "1234" }
@@ -34,7 +36,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
       end
     end
 
-    client.create_bucket(bucket: 'my-bucket')
+    s3_client.create_bucket(bucket: s3_bucket)
   end
 
   after do
@@ -65,6 +67,23 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
 
       uploaded_version.read
       expect(s3_adapter).to have_received(:open)
+    end
+
+    context "moves the original file" do
+      subject(:list_object_ids) { s3_adapter.list_object_ids(id_prefix: shrine_id_uploaded).sort.reverse }
+
+      let(:shrine_id_uploaded) { uploaded_file.id.to_s.sub(/^#{protocol_with_prefix}/, "") }
+
+      it "is renamed to a versioned file" do
+        expect(s3_adapter.list_object_ids(id_prefix: shrine_id_uploaded).last).to eq(shrine_id_uploaded)
+
+        uploaded_version
+
+        expect(list_object_ids.size).to eq(2)
+        expect(list_object_ids.last).not_to eq(shrine_id_uploaded)
+        expect(list_object_ids.last).to include("#{shrine_id_uploaded}_v-")
+        expect(list_object_ids.first).to include(uploaded_version.id.to_s.split(protocol_with_prefix).last)
+      end
     end
   end
 
