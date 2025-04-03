@@ -109,7 +109,8 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     end
 
     it "find the latest versioned file" do
-      expect(storage_adapter.find_by(id: uploaded_file.id).id).to eq(uploaded_version.id)
+      expect(storage_adapter.find_by(id: uploaded_file.id))
+        .to have_attributes(id: uploaded_version.id, version_id: uploaded_version.version_id)
     end
   end
 
