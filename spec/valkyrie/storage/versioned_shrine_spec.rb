@@ -44,6 +44,21 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     Object.send(:remove_const, :NullVerifier)
   end
 
+  context 'Default verifier' do
+    let(:verifier) { nil }
+
+    it_behaves_like 'a Valkyrie::StorageAdapter'
+  end
+
+  context 'Custom verifier' do
+    let(:verifier) { double }
+    it_behaves_like 'a Valkyrie::StorageAdapter'
+
+    before do
+      allow(verifier).to receive(:verify_checksum).and_return(true)
+    end
+  end
+
   describe "#upload" do
     it "only reads from the client when the content is actually read out" do
       allow(s3_adapter).to receive(:open).and_call_original
