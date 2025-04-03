@@ -20,8 +20,8 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
 
   let(:verifier) { NullVerifier }
   let(:resource) { ExampleResource.new(id: "fake-resource-id") }
-  let(:file) { Rack::Test::UploadedFile.new(StringIO.new("Test Content"), "text/plain", true, original_filename: "demo.txt") }
-  let(:uploaded_file) { storage_adapter.upload(file: file, original_filename: "text.txt", resource: resource, fake_upload_argument: true) }
+  let(:file) { fixture_file_upload('files/example.tif', 'image/tiff') }
+  let(:uploaded_file) { storage_adapter.upload(file: file, original_filename: "example.tif", resource: resource, fake_upload_argument: true) }
 
   let(:version_file) { Rack::Test::UploadedFile.new(StringIO.new("Test  Versioned File Content"), "text/plain", true, original_filename: "versioned.txt") }
   let(:uploaded_version) { storage_adapter.upload_version(id: uploaded_file.id, file: version_file) }
