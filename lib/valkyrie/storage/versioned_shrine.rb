@@ -69,7 +69,7 @@ module Valkyrie
 
       # Delete the versioned file or delete all versions in S3 associated with the given identifier.
       # @param id [Valkyrie::ID]
-      # @return [Array(Valkyrie::Storage::VersionedShrine::VersionId)] - versioned file's that are deleted.
+      # @return [Array(Valkyrie::ID)] - file id's that are deleted.
       def delete(id:)
         version_id = VersionId.new(id)
         return [] if version_id.deletion_marker?
@@ -77,13 +77,16 @@ module Valkyrie
         delete_ids = version_id.versioned? ? [id] : version_files(id: id).map { |f| Valkyrie::ID.new(f) }
 
         delete_ids.reject { |f| VersionId.new(f).deletion_marker? }.map do |delete_id|
-          delete_id = version_id(delete_id).version_id # convert id with current reference.
-          shrine.delete(shrine_id_for(delete_id))
+          delete_id = version_id(delete_id).id # convert id with current reference.
+          shrine_id_to_delete = shrine_id_for(delete_id)
+          next unless shrine.exists?(shrine_id_to_delete)
+
+          shrine.delete(shrine_id_to_delete)
 
           # Mark the object with deletion marker
           deletion_marker_id = Valkyrie::ID.new("#{delete_id}-#{VersionId::DELETION_MARKER}")
           shrine.object(shrine_id_for(deletion_marker_id)).put
-          VersionId.new(deletion_marker_id)
+          deletion_marker_id
         end
       end
 
