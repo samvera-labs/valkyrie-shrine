@@ -97,9 +97,16 @@ module Valkyrie
       # @return [Valkyrie::StorageAdapter::StreamFile]
       # @raise Valkyrie::StorageAdapter::FileNotFound if nothing is found
       def find_by(id:)
-        id = VersionId.new(id).versioned? ? id : (find_versions(id: id).first&.version_id || id)
+        id = if VersionId.new(id).versioned?
+               id
+             else
+               Valkyrie::ID.new(version_files(id: id).first.string_id || id.to_s)
+             end
 
-        super
+        raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id)) && !id.to_s.include?(VersionId::DELETION_MARKER)
+        Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_PREFIX).first),
+                                                 io: DelayedDownload.new(shrine, shrine_id_for(id)),
+                                                 version_id: id)
       end
 
       # @return VersionId A VersionId value that's resolved a current reference,

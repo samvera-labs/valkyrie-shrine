@@ -49,7 +49,7 @@ class S3Helper
       bucket_contents = s3_cache[bucket]
       return 'NoSuchBucket' unless bucket_contents
       obj = bucket_contents[key]
-      obj ? { etag: obj[:etag], content_length: obj[:content_length], last_modified: obj[:last_modified] } : 'NoSuchKey'
+      obj ? { etag: obj[:etag], content_length: obj[:content_length], last_modified: obj[:last_modified] } : { status_code: 404, headers: {}, body: '' }
     }
   end
 

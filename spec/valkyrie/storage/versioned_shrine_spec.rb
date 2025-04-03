@@ -175,12 +175,12 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
       subject(:list_object_ids) { s3_adapter.list_object_ids(id_prefix: shrine_id_uploaded).sort.reverse }
 
       let(:shrine_id_uploaded) { uploaded_file.id.to_s.split(protocol).last }
-      let(:shrine_id_versioned) { uploaded_version.id.to_s.split(protocol).last }
+      let(:shrine_id_versioned) { uploaded_version.version_id.to_s.split(protocol).last }
 
       it "marks the versioned file with deletion marker" do
-        versions_deleted = storage_adapter.delete(id: uploaded_version.id).map(&:id).map(&:id)
+        versions_deleted = storage_adapter.delete(id: uploaded_version.version_id).map(&:id).map(&:id)
         expect(versions_deleted)
-          .to contain_exactly("#{uploaded_version.id}-deletionmarker")
+          .to contain_exactly("#{uploaded_version.version_id}-deletionmarker")
         expect(s3_adapter.list_object_ids(id_prefix: shrine_id_uploaded).sort.reverse)
           .to include("#{shrine_id_versioned}-deletionmarker")
       end
@@ -207,11 +207,11 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     end
 
     context "with a versioned ID" do
-      let(:id) { uploaded_version.id }
+      let(:id) { uploaded_version.version_id }
 
       it "returns the versioned ID" do
         expect(version_id).to be_a(Valkyrie::Storage::VersionedShrine::VersionId)
-        expect(version_id.id).to eq(uploaded_version.id)
+        expect(version_id.id).to eq(uploaded_version.version_id)
       end
     end
 
@@ -220,7 +220,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
 
       it "returns the latest versioned ID" do
         expect(version_id).to be_a(Valkyrie::Storage::VersionedShrine::VersionId)
-        expect(version_id.id).to eq(uploaded_version.id)
+        expect(version_id.id).to eq(uploaded_version.version_id)
       end
     end
   end
