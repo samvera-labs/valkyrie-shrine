@@ -155,7 +155,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
       end
     end
 
-   context "with versioned file deleted" do
+    context "with versioned file deleted" do
       it "includes versioned files with deletion marker" do
         versions_deleted = storage_adapter.delete(id: uploaded_version.id)
 

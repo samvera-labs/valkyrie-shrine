@@ -2,9 +2,8 @@
 
 module Valkyrie
   module Storage
-    # The VersionedShrine adapter implements versioned storage on S3 through Shrine with
-    # the last_modify time of the file as part of the object id/key on S3 like
-    # shrine://[resource_id]/[UUID]_v-[timestamp].
+    # The VersionedShrine adapter implements versioned storage on S3 that manages versions
+    # through Shrine object id with a timestamp like shrine://[resource_id]/[UUID]_v-[timestamp].
     #
     # Example to use VersionedShrine storage adapter:
     #    shrine_s3_options = {
@@ -131,7 +130,7 @@ module Valkyrie
         return if version_id.versioned? || !shrine_object.exists?
 
         last_modified = shrine_object.last_modified
-        versioned_shrine_id = shrine_id_for(version_id.generate_version(timestamp: last_modified).version_id)
+        versioned_shrine_id = shrine_id_for(version_id.generate_version(timestamp: last_modified).id)
         source_object = Aws::S3::Object.new(shrine.bucket.name, shrine_id, client: shrine.client)
         source_object.move_to("#{shrine.bucket.name}/#{versioned_shrine_id}")
       end
@@ -189,10 +188,6 @@ module Valkyrie
 
         def versioned?
           string_id.include?(VERSION_PREFIX)
-        end
-
-        def version_id
-          id
         end
 
         def version
