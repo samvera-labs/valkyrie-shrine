@@ -29,19 +29,21 @@ module Valkyrie
 
       # Retireve all files versions with no deletion marker that are associated from S3.
       # @param id [Valkyrie::ID]
-      # @return [Array(Valkyrie::Storage::VersionedShrine::VersionId)]
+      # @return [Array(Valkyrie::StorageAdapter::StreamFile)]
       def find_versions(id:)
-        version_files(id: id).reject(&:deletion_marker?)
+        version_files(id: id)
+          .reject { |f| VersionId.new(f).deletion_marker? }
+          .map { |f| find_by(id: Valkyrie::ID.new(f)) }
       end
 
       # Retireve all file versions associated with the given identifier from S3
       # @param id [Valkyrie::ID]
-      # @return [Array(Valkyrie::Storage::VersionedShrine::VersionId)]
+      # @return [Array(String))] - list of file identifiers
       def version_files(id:)
         shrine.list_object_ids(id_prefix: shrine_id_for(id))
               .sort
               .reverse
-              .map { |v| VersionId.new(Valkyrie::ID.new(protocol_with_prefix + v)) }
+              .map { |v| protocol_with_prefix + v }
       end
 
       # Upload a new version file
@@ -72,13 +74,9 @@ module Valkyrie
         version_id = VersionId.new(id)
         return [] if version_id.deletion_marker?
 
-        delete_ids = if version_id.versioned?
-                       [id]
-                     else
-                       find_versions(id: id).map(&:id)
-                     end
+        delete_ids = version_id.versioned? ? [id] : version_files(id: id).map { |f| Valkyrie::ID.new(f) }
 
-        delete_ids.map do |delete_id|
+        delete_ids.reject { |f| VersionId.new(f).deletion_marker? }.map do |delete_id|
           delete_id = version_id(delete_id).version_id # convert id with current reference.
           shrine.delete(shrine_id_for(delete_id))
 
@@ -100,7 +98,7 @@ module Valkyrie
         id = if VersionId.new(id).versioned?
                id
              else
-               Valkyrie::ID.new(version_files(id: id).first.string_id || id.to_s)
+               Valkyrie::ID.new(version_files(id: id).first || id.to_s)
              end
 
         raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id)) && !id.to_s.include?(VersionId::DELETION_MARKER)
@@ -114,8 +112,10 @@ module Valkyrie
       def version_id(id)
         version_id = VersionId.new(id)
         return version_id unless version_id.versioned? && version_id.reference?
-        file_identifier = id.to_s.split(VersionId::VERSION_PREFIX).first
-        find_versions(id: Valkyrie::ID.new(file_identifier)).first
+        id = Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_PREFIX).first)
+        version_files(id: id).map { |f| VersionId.new(f) }
+                             .reject { |f| VersionId.new(f).deletion_marker? }
+                             .first
       end
 
       # Convert a non-versioned file to a version file basing on its last_modified time.

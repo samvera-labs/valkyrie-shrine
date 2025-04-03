@@ -126,10 +126,10 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     end
 
     context "with versioned file deleted" do
-      let!(:previous_version_id) { storage_adapter.version_files(id: uploaded_file.id).map(&:id).last }
+      let!(:previous_version_id) { storage_adapter.version_files(id: uploaded_file.id).last }
 
       it "excludes versions with deletion marker" do
-        expect(find_versions.map(&:id)).to include(previous_version_id)
+        expect(find_versions.map(&:version_id)).to include(previous_version_id)
 
         versions_deleted = storage_adapter.delete(id: previous_version_id)
 
@@ -159,7 +159,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
         versions_deleted = storage_adapter.delete(id: uploaded_version.id)
 
         expect(versions_deleted.first.deletion_marker?).to eq(true)
-        expect(storage_adapter.version_files(id: uploaded_file.id).map(&:id))
+        expect(storage_adapter.version_files(id: uploaded_file.id))
           .to include(versions_deleted.first.id)
       end
     end
@@ -187,13 +187,13 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     end
 
     context "with all versioned files assiciated with the given identifier" do
-      let!(:version_files) { storage_adapter.version_files(id: uploaded_file.id) }
-
+      let(:version_files) { storage_adapter.version_files(id: uploaded_file.id) }
+      before { version_files }
       it "marks all version files' identifiers with deletion marker" do
         expect(storage_adapter.version_files(id: uploaded_file.id).size).to eq(2)
         expect(storage_adapter.delete(id: uploaded_file.id).map(&:id).map(&:id))
-          .to contain_exactly("#{version_files.first.id}-deletionmarker",
-                              "#{version_files.last.id}-deletionmarker")
+          .to contain_exactly("#{version_files.first}-deletionmarker",
+                              "#{version_files.last}-deletionmarker")
       end
     end
   end
