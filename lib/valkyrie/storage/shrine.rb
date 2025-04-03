@@ -104,10 +104,15 @@ module Valkyrie
         shrine.delete(shrine_id_for(id))
       end
 
-      # @param feature [Symbol] Feature to test for.
+      # @param _feature [Symbol] Feature to test for.
       # @return [Boolean] true if the adapter supports the given feature
       def supports?(_feature)
         false
+      end
+
+      # @return [String] identifier prefix
+      def protocol
+        protocol_with_prefix
       end
 
       private
