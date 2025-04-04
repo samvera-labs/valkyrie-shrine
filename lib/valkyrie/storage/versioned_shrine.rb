@@ -167,20 +167,12 @@ module Valkyrie
           self.class.new(Valkyrie::ID.new(id_string))
         end
 
-        def current_reference_id
-          self.class.new(Valkyrie::ID.new(string_id.gsub(version, CURRENT_VERSION)))
-        end
-
         def current_timestamp
           Time.now.utc.strftime("%s%L")
         end
 
         def deletion_marker?
           string_id.include?(DELETION_MARKER)
-        end
-
-        def current?
-          version_files.first&.id == id
         end
 
         # @return [Boolean] Whether this id is referential (e.g. "current") or absolute (e.g. a timestamp)
