@@ -69,16 +69,9 @@ module Valkyrie
       # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
       #   on the shrine object and the file and result digests do not match
       def upload(file:, original_filename:, resource:, **upload_options)
-        # S3 adapter validates options, so we have to remove this one used in
-        # the shared specs.
-        upload_options.delete(:fake_upload_argument)
         identifier = path_generator.generate(resource: resource, file: file, original_filename: original_filename).to_s
-        shrine.upload(file, identifier, **upload_options)
-        find_by(id: "#{protocol_with_prefix}#{identifier}").tap do |result|
-          if verifier
-            raise Valkyrie::Shrine::IntegrityError unless verifier.verify_checksum(file, result)
-          end
-        end
+
+        upload_file(file: file, identifier: identifier, **upload_options)
       end
 
       # Return the file associated with the given identifier
@@ -88,8 +81,6 @@ module Valkyrie
       def find_by(id:)
         raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id))
         Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s), io: DelayedDownload.new(shrine, shrine_id_for(id)))
-      rescue Aws::S3::Errors::NoSuchKey
-        raise Valkyrie::StorageAdapter::FileNotFound
       end
 
       # @param id [Valkyrie::ID]
@@ -116,6 +107,26 @@ module Valkyrie
       end
 
       private
+
+        # Upload file with a given shrine object idenfifier (without prefix #protocol_with_prefix)
+        # @param file [IO]
+        # @param original_filename [String]
+        # @param resource [Valkyrie::Resource]
+        # @return [Valkyrie::StorageAdapter::StreamFile]
+        # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
+        #   on the shrine object and the file and result digests do not match
+        def upload_file(file:, identifier:, **upload_options)
+          # S3 adapter validates options, so we have to remove this one used in
+          # the shared specs.
+          upload_options.delete(:fake_upload_argument)
+
+          shrine.upload(file, identifier, **upload_options)
+          find_by(id: "#{protocol_with_prefix}#{identifier}").tap do |result|
+            if verifier
+              raise Valkyrie::Shrine::IntegrityError unless verifier.verify_checksum(file, result)
+            end
+          end
+        end
 
         def try_to_find_verifier
           class_const = shrine.class.name.split(/::/).last.to_sym

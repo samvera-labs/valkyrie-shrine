@@ -21,8 +21,9 @@ Follow the Valkyrie [README](https://github.com/samvera-labs/valkyrie) to get a 
   # config/initializers/valkyrie.rb
   require 'shrine/storage/s3'
   require 'shrine/storage/file_system'
-  require 'valkyrie/storage/shrine/checksum/s3'
-  require 'valkyrie/storage/shrine/checksum/file_system'
+  require 'valkyrie/shrine/checksum/s3'
+  require 'valkyrie/shrine/checksum/file_system'
+  require 'valkyrie/shrine/storage/s3'
 
   Shrine.storages = {
     file: Shrine::Storage::FileSystem.new("public", prefix: "uploads"),
@@ -35,6 +36,18 @@ Follow the Valkyrie [README](https://github.com/samvera-labs/valkyrie) to get a 
 
   Valkyrie::StorageAdapter.register(
     Valkyrie::Storage::Shrine.new(Shrine.storages[:file]), :disk
+  )
+
+  s3_options = {
+    access_key_id: s3_access_key,
+    bucket: s3_bucket,
+    endpoint: s3_endpoint,
+    force_path_style: force_path_style,
+    region: s3_region,
+    secret_access_key: s3_secret_key
+  }
+  Valkyrie::StorageAdapter.register(
+    Valkyrie::Storage::VersionedShrine.new(Valkyrie::Shrine::Storage::S3.new(**s3_options)), :versioned_s3
   )
 ```
 
