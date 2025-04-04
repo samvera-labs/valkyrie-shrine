@@ -81,8 +81,6 @@ module Valkyrie
       def find_by(id:)
         raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id))
         Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s), io: DelayedDownload.new(shrine, shrine_id_for(id)))
-      rescue Aws::S3::Errors::NoSuchKey
-        raise Valkyrie::StorageAdapter::FileNotFound
       end
 
       # @param id [Valkyrie::ID]
