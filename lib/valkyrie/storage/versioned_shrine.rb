@@ -49,22 +49,15 @@ module Valkyrie
       # @param id [Valkyrie::ID] ID of the Valkyrie::StorageAdapter::File to version.
       # @param file [IO]
       def upload_version(id:, file:, **upload_options)
-        # S3 adapter validates options, so we have to remove this one used in
-        # the shared specs.
-        upload_options.delete(:fake_upload_argument)
-
         versioned_shrine_id = shrine_id_for(VersionId.new(id).generate_version.id)
-        shrine.upload(file, versioned_shrine_id, **upload_options)
-        find_by(id: "#{protocol_with_prefix}#{versioned_shrine_id}").tap do |result|
-          if verifier
-            raise Valkyrie::Shrine::IntegrityError unless verifier.verify_checksum(file, result)
-          end
+        uploaded_version = upload_file(file: file, identifier: versioned_shrine_id, **upload_options)
 
-          # For backward compatablity with files ingested in the past and we don't have to migrate it to versioned fies.
-          #   If there is a file associated with the given identifier that is not a versioned file,
-          #   simply convert it to a versioned file basing on last_modified time to keep all versioned files consistent.
-          to_version_file(id: id) if shrine.exists?(shrine_id_for(id))
-        end
+        # For backward compatablity with files ingested in the past and we don't have to migrate it to versioned fies.
+        #   If there is a file associated with the given identifier that is not a versioned file,
+        #   simply convert it to a versioned file basing on last_modified time to keep all versioned files consistent.
+        to_version_file(id: id) if shrine.exists?(shrine_id_for(id))
+
+        uploaded_version
       end
 
       # Delete the versioned file or delete all versions in S3 associated with the given identifier.
