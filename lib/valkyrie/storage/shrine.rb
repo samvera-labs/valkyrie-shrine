@@ -110,38 +110,38 @@ module Valkyrie
 
       private
 
-      # Upload file with a given shrine object idenfifier (without prefix #protocol_with_prefix)
-      # @param file [IO]
-      # @param original_filename [String]
-      # @param resource [Valkyrie::Resource]
-      # @return [Valkyrie::StorageAdapter::StreamFile]
-      # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
-      #   on the shrine object and the file and result digests do not match
-      def upload_file(file:, identifier:, **upload_options)
-        # S3 adapter validates options, so we have to remove this one used in
-        # the shared specs.
-        upload_options.delete(:fake_upload_argument)
+        # Upload file with a given shrine object idenfifier (without prefix #protocol_with_prefix)
+        # @param file [IO]
+        # @param original_filename [String]
+        # @param resource [Valkyrie::Resource]
+        # @return [Valkyrie::StorageAdapter::StreamFile]
+        # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
+        #   on the shrine object and the file and result digests do not match
+        def upload_file(file:, identifier:, **upload_options)
+          # S3 adapter validates options, so we have to remove this one used in
+          # the shared specs.
+          upload_options.delete(:fake_upload_argument)
 
-        shrine.upload(file, identifier, **upload_options)
-        find_by(id: "#{protocol_with_prefix}#{identifier}").tap do |result|
-          if verifier
-            raise Valkyrie::Shrine::IntegrityError unless verifier.verify_checksum(file, result)
+          shrine.upload(file, identifier, **upload_options)
+          find_by(id: "#{protocol_with_prefix}#{identifier}").tap do |result|
+            if verifier
+              raise Valkyrie::Shrine::IntegrityError unless verifier.verify_checksum(file, result)
+            end
           end
         end
-      end
 
-      def try_to_find_verifier
-        class_const = shrine.class.name.split(/::/).last.to_sym
-        @verifier = Valkyrie::Shrine::Checksum.const_get(class_const).new if Valkyrie::Shrine::Checksum.const_defined?(class_const)
-      end
+        def try_to_find_verifier
+          class_const = shrine.class.name.split(/::/).last.to_sym
+          @verifier = Valkyrie::Shrine::Checksum.const_get(class_const).new if Valkyrie::Shrine::Checksum.const_defined?(class_const)
+        end
 
-      def shrine_id_for(id)
-        id.to_s.sub(/^#{protocol_with_prefix}/, '')
-      end
+        def shrine_id_for(id)
+          id.to_s.sub(/^#{protocol_with_prefix}/, '')
+        end
 
-      def protocol_with_prefix
-        [identifier_prefix, PROTOCOL].compact.join("-")
-      end
+        def protocol_with_prefix
+          [identifier_prefix, PROTOCOL].compact.join("-")
+        end
     end
   end
 end

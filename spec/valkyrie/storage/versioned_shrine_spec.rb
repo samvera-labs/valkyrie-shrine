@@ -73,9 +73,9 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
   end
 
   describe "#upload_version" do
-    before { uploaded_file }
-
     it "upload a versioned file" do
+      uploaded_file
+
       allow(s3_adapter).to receive(:open).and_call_original
 
       uploaded_version = storage_adapter.upload_version(id: uploaded_file.id, file: version_file)
@@ -84,12 +84,19 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
       expect(s3_adapter).to have_received(:open)
     end
 
-    context "moves the original file" do
+    context "non-versioned file with the identifier(:id) exists" do
       subject(:list_object_ids) { s3_adapter.list_object_ids(id_prefix: shrine_id_uploaded).sort.reverse }
+
+      # Upload a non-versioned file with Valkyrie::Storage::Shrine and Shrine::Storage::S3
+      let(:shrine_s3_adapter) { Shrine::Storage::S3.new(bucket: s3_bucket, client: s3_client) }
+      let(:shrine_storage_adapter) { Valkyrie::Storage::Shrine.new(shrine_s3_adapter, verifier, identifier_prefix: identifier_prefix) }
+      let!(:uploaded_file) { shrine_storage_adapter.upload(file: file, original_filename: "text.txt", resource: resource, fake_upload_argument: true) }
 
       let(:shrine_id_uploaded) { uploaded_file.id.to_s.sub(/^#{protocol_with_prefix}/, "") }
 
-      it "is renamed to a versioned file" do
+      it "renames the file to a versioned file" do
+        expect(uploaded_file.version_id.to_s).not_to include("_v-")
+
         expect(s3_adapter.list_object_ids(id_prefix: shrine_id_uploaded).last).to eq(shrine_id_uploaded)
 
         uploaded_version

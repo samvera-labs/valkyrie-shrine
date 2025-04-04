@@ -45,6 +45,19 @@ module Valkyrie
               .map { |v| protocol_with_prefix + v }
       end
 
+      # Upload a file via the VersionedShrine storage adapter with a version id assigned.
+      # @param file [IO]
+      # @param original_filename [String]
+      # @param resource [Valkyrie::Resource]
+      # @return [Valkyrie::StorageAdapter::StreamFile]
+      # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
+      #   on the shrine object and the file and result digests do not match
+      def upload(file:, original_filename:, resource:, **upload_options)
+        identifier = path_generator.generate(resource: resource, file: file, original_filename: original_filename)
+        identifier = VersionId.new(Valkyrie::ID.new(identifier)).generate_version.string_id
+        upload_file(file: file, identifier: identifier, **upload_options)
+      end
+
       # Upload a new version file
       # @param id [Valkyrie::ID] ID of the Valkyrie::StorageAdapter::File to version.
       # @param file [IO]
