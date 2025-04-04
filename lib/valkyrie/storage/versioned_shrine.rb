@@ -60,9 +60,10 @@ module Valkyrie
             raise Valkyrie::Shrine::IntegrityError unless verifier.verify_checksum(file, result)
           end
 
-          # If file associated with the given identifier is not a versioned file,
-          #   convert it to a versioned file basing on last_modified time.
-          to_version_file(id: id)
+          # For backward compatablity with files ingested in the past and we don't have to migrate it to versioned fies.
+          #   If there is a file associated with the given identifier that is not a versioned file,
+          #   simply convert it to a versioned file basing on last_modified time to keep all versioned files consistent.
+          to_version_file(id: id) if shrine.exists?(shrine_id_for(id))
         end
       end
 
@@ -123,16 +124,11 @@ module Valkyrie
       # Convert a non-versioned file to a version file basing on its last_modified time.
       # @param id [Valkyrie::ID]
       def to_version_file(id:)
-        version_id = VersionId.new(id)
         shrine_id = shrine_id_for(id)
-        shrine_object = shrine.object(shrine_id)
-
-        return if version_id.versioned? || !shrine_object.exists?
-
-        last_modified = shrine_object.last_modified
-        versioned_shrine_id = shrine_id_for(version_id.generate_version(timestamp: last_modified).id)
+        last_modified = shrine.object(shrine_id).last_modified
+        version_id = VersionId.new(id).generate_version(timestamp: last_modified).id
         source_object = Aws::S3::Object.new(shrine.bucket.name, shrine_id, client: shrine.client)
-        source_object.move_to("#{shrine.bucket.name}/#{versioned_shrine_id}")
+        source_object.move_to("#{shrine.bucket.name}/#{shrine_id_for(version_id)}")
       end
 
       # A class that holds a version id and methods for knowing things about it.
