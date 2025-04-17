@@ -31,7 +31,6 @@ module Valkyrie
       # @return [Array(Valkyrie::StorageAdapter::StreamFile)]
       def find_versions(id:)
         version_files(id: id)
-          .reject { |f| VersionId.new(f).deletion_marker? }
           .map { |f| find_by(id: Valkyrie::ID.new(f)) }
       end
 
@@ -78,22 +77,17 @@ module Valkyrie
       # @return [Array(Valkyrie::ID)] - file id's that are deleted.
       def delete(id:)
         version_id = VersionId.new(id)
-        return [] if version_id.deletion_marker?
 
         delete_ids = version_id.versioned? ? [id] : version_files(id: id).map { |f| Valkyrie::ID.new(f) }
 
-        delete_ids.reject { |f| VersionId.new(f).deletion_marker? }.map do |delete_id|
+        delete_ids.each do |delete_id|
           delete_id = version_id(delete_id).id # convert id with current reference.
           shrine_id_to_delete = shrine_id_for(delete_id)
           next unless shrine.exists?(shrine_id_to_delete)
 
           shrine.delete(shrine_id_to_delete)
-
-          # Mark the object with deletion marker
-          deletion_marker_id = Valkyrie::ID.new("#{delete_id}-#{VersionId::DELETION_MARKER}")
-          shrine.object(shrine_id_for(deletion_marker_id)).put
-          deletion_marker_id
         end
+        delete_ids
       end
 
       # Find the file associated with the given version identifier
@@ -110,7 +104,7 @@ module Valkyrie
                Valkyrie::ID.new(version_files(id: id).first || id.to_s)
              end
 
-        raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id)) && !id.to_s.include?(VersionId::DELETION_MARKER)
+        raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id))
         Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_PREFIX).first),
                                                  io: DelayedDownload.new(shrine, shrine_id_for(id)),
                                                  version_id: id)
@@ -123,7 +117,6 @@ module Valkyrie
         return version_id unless version_id.versioned? && version_id.reference?
         id = Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_PREFIX).first)
         version_files(id: id).map { |f| VersionId.new(f) }
-                             .reject { |f| VersionId.new(f).deletion_marker? }
                              .first
       end
 
@@ -141,11 +134,9 @@ module Valkyrie
       # Examples of version ids in this adapter:
       #   * shrine://[resource_id]/[uuid]_v-current
       #   * shrine://[resource_id]/[uuid]_v-1694195675462560794
-      #   * shrine://[resource_id]/[uuid]_v-1694195675462560794-deletionmarker
       class VersionId
         VERSION_PREFIX = "_v-"
         CURRENT_VERSION = "current"
-        DELETION_MARKER = "deletionmarker"
 
         attr_reader :id
         def initialize(id)
@@ -169,10 +160,6 @@ module Valkyrie
 
         def current_timestamp
           Time.now.utc.strftime("%s%L")
-        end
-
-        def deletion_marker?
-          string_id.include?(DELETION_MARKER)
         end
 
         # @return [Boolean] Whether this id is referential (e.g. "current") or absolute (e.g. a timestamp)
