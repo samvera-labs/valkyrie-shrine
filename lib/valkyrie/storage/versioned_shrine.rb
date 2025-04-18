@@ -61,14 +61,13 @@ module Valkyrie
       # @param file [IO]
       def upload_version(id:, file:, **upload_options)
         versioned_shrine_id = shrine_id_for(VersionId.new(id).generate_version.id)
-        uploaded_version = upload_file(file: file, identifier: versioned_shrine_id, **upload_options)
 
         # For backward compatablity with files ingested in the past and we don't have to migrate it to versioned fies.
         #   If there is a file associated with the given identifier that is not a versioned file,
         #   simply convert it to a versioned file basing on last_modified time to keep all versioned files consistent.
         to_version_file(id: id) if shrine.exists?(shrine_id_for(id))
 
-        uploaded_version
+        upload_file(file: file, identifier: versioned_shrine_id, **upload_options)
       end
 
       # Delete the versioned file or delete all versions in S3 associated with the given identifier.
