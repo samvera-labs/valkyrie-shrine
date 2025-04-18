@@ -22,8 +22,7 @@ module Valkyrie
       # @param feature [Symbol] Feature to test for.
       # @return [Boolean] true if the adapter supports the given feature
       def supports?(feature)
-        return true if feature == :versions || feature == :version_deletion
-        false
+        feature == :versions || feature == :version_deletion
       end
 
       # Retireve all files versions with no deletion marker that are associated from S3.
@@ -105,7 +104,7 @@ module Valkyrie
              end
 
         raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id))
-        Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_PREFIX).first),
+        Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_DELIMITER).first),
                                                  io: DelayedDownload.new(shrine, shrine_id_for(id)),
                                                  version_id: id)
       end
@@ -115,7 +114,7 @@ module Valkyrie
       def version_id(id)
         version_id = VersionId.new(id)
         return version_id unless version_id.versioned? && version_id.reference?
-        id = Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_PREFIX).first)
+        id = Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_DELIMITER).first)
         version_files(id: id).map { |f| VersionId.new(f) }
                              .first
       end
@@ -135,7 +134,7 @@ module Valkyrie
       #   * shrine://[resource_id]/[uuid]_v-current
       #   * shrine://[resource_id]/[uuid]_v-1694195675462560794
       class VersionId
-        VERSION_PREFIX = "_v-"
+        VERSION_DELIMITER = "_v-"
         CURRENT_VERSION = "current"
 
         attr_reader :id
@@ -152,7 +151,7 @@ module Valkyrie
           id_string = if versioned?
                         string_id.gsub(version, version_timestam)
                       else
-                        string_id.gsub(version, version + VERSION_PREFIX + version_timestam)
+                        string_id + VERSION_DELIMITER + version_timestam
                       end
 
           self.class.new(Valkyrie::ID.new(id_string))
@@ -168,11 +167,11 @@ module Valkyrie
         end
 
         def versioned?
-          string_id.include?(VERSION_PREFIX)
+          string_id.include?(VERSION_DELIMITER)
         end
 
         def version
-          string_id.split("/").last.split(VERSION_PREFIX).last
+          string_id.split(VERSION_DELIMITER).last
         end
 
         def string_id
