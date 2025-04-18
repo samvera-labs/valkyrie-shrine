@@ -13,8 +13,11 @@ module Valkyrie
         # @param id_prefix [String] - object's id that starts with
         # @return [Array(String)]
         def list_object_ids(id_prefix:)
-          bucket.objects(prefix: [*prefix, id_prefix].join("/"))
-                .map { |obj| (prefix.present? ? obj.key.sub(/^#{prefix}\//, "") : obj.key) }
+          aws_prefix = [*prefix, id_prefix].join("/")
+          keys = bucket.objects(prefix: aws_prefix).map(&:key)
+          return keys if prefix.blank?
+
+          keys.map { |k| k.delete_prefix("#{prefix}/") }
         end
       end
     end
