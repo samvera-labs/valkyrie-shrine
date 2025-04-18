@@ -120,12 +120,14 @@ module Valkyrie
 
       # Convert a non-versioned file to a version file basing on its last_modified time.
       # @param id [Valkyrie::ID]
+      # @return [VerrsionId]
       def to_version_file(id:)
         shrine_id = shrine_id_for(id)
         last_modified = shrine.object(shrine_id).last_modified
         version_id = VersionId.new(id).generate_version(timestamp: last_modified).id
         source_object = Aws::S3::Object.new(shrine.bucket.name, shrine_id, client: shrine.client)
         source_object.move_to("#{shrine.bucket.name}/#{shrine_id_for(version_id)}")
+        version_id
       end
 
       # A class that holds a version id and methods for knowing things about it.
