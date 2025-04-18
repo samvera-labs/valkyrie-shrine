@@ -65,7 +65,7 @@ module Valkyrie
         # For backward compatablity with files ingested in the past and we don't have to migrate it to versioned fies.
         #   If there is a file associated with the given identifier that is not a versioned file,
         #   simply convert it to a versioned file basing on last_modified time to keep all versioned files consistent.
-        to_version_file(id: id) if shrine.exists?(shrine_id_for(id))
+        migrate_to_versioned(id: id) if shrine.exists?(shrine_id_for(id))
 
         upload_file(file: file, identifier: versioned_shrine_id, **upload_options)
       end
@@ -121,7 +121,7 @@ module Valkyrie
       # Convert a non-versioned file to a version file basing on its last_modified time.
       # @param id [Valkyrie::ID]
       # @return [VerrsionId]
-      def to_version_file(id:)
+      def migrate_to_versioned(id:)
         shrine_id = shrine_id_for(id)
         last_modified = shrine.object(shrine_id).last_modified
         version_id = VersionId.new(id).generate_version(timestamp: last_modified).id
