@@ -132,8 +132,7 @@ module Valkyrie
         shrine_id = shrine_id_for(id)
         last_modified = shrine.object(shrine_id).last_modified
         version_id = VersionId.new(id).generate_version(timestamp: last_modified).id
-        source_object = Aws::S3::Object.new(shrine.bucket.name, shrine_id, client: shrine.client)
-        source_object.move_to("#{shrine.bucket.name}/#{shrine_id_for(version_id)}")
+        shrine.move_to(id: shrine_id, destination_id: shrine_id_for(version_id))
         version_id
       end
 

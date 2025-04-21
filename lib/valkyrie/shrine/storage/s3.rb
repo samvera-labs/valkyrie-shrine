@@ -19,6 +19,18 @@ module Valkyrie
 
           keys.map { |k| k.delete_prefix("#{prefix}/") }
         end
+
+        # Move a file to a another location.
+        # @param id [String] - the id of the source file
+        # @param destination_id [String] - the id of the destination file
+        # @param destination_bucket [String] - the bucket name of the destination
+        # @return [String]
+        def move_to(id:, destination_id:, destination_bucket: bucket.name)
+          source_object = Aws::S3::Object.new(bucket.name, object_key(id), client: client)
+          destination_key = "#{destination_bucket}/#{object_key(destination_id)}"
+          source_object.move_to(destination_key)
+          destination_key
+        end
       end
     end
   end
