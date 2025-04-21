@@ -52,21 +52,28 @@ module Valkyrie
       #   on the shrine object and the file and result digests do not match
       def upload(file:, original_filename:, resource:, **upload_options)
         identifier = path_generator.generate(resource: resource, file: file, original_filename: original_filename)
-        identifier = VersionId.new(Valkyrie::ID.new(identifier)).generate_version.string_id
-        upload_file(file: file, identifier: identifier, **upload_options)
+        perform_upload(id: "#{protocol_with_prefix}#{identifier}", file: file, **upload_options)
       end
 
       # Upload a new version file
       # @param id [Valkyrie::ID] ID of the Valkyrie::StorageAdapter::File to version.
       # @param file [IO]
       def upload_version(id:, file:, **upload_options)
-        versioned_shrine_id = shrine_id_for(VersionId.new(id).generate_version.id)
-
         # For backward compatablity with files ingested in the past and we don't have to migrate it to versioned fies.
         #   If there is a file associated with the given identifier that is not a versioned file,
         #   simply convert it to a versioned file basing on last_modified time to keep all versioned files consistent.
         migrate_to_versioned(id: id) if shrine.exists?(shrine_id_for(id))
 
+        perform_upload(id: id, file: file, **upload_options)
+      end
+
+      # Upload a file with a version id assigned.
+      # @param id [Valkyrie::ID] ID of the Valkyrie::StorageAdapter::File to version.
+      # @param file [IO]
+      # @return [Valkyrie::StorageAdapter::StreamFile]
+      # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
+      def perform_upload(id:, file:, **upload_options)
+        versioned_shrine_id = shrine_id_for(VersionId.new(id).generate_version.id)
         upload_file(file: file, identifier: versioned_shrine_id, **upload_options)
       end
 
