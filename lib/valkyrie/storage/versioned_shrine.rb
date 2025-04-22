@@ -83,10 +83,9 @@ module Valkyrie
       def delete(id:)
         version_id = VersionId.new(id)
 
-        delete_ids = version_id.versioned? ? [id] : version_files(id: id).map { |f| Valkyrie::ID.new(f) }
+        delete_ids = version_id.versioned? ? [resolve_current(id)&.id].compact : version_files(id: id).map { |f| Valkyrie::ID.new(f) }
 
         delete_ids.each do |delete_id|
-          delete_id = version_id(delete_id).id # convert id with current reference.
           shrine_id_to_delete = shrine_id_for(delete_id)
           next unless shrine.exists?(shrine_id_to_delete)
 
@@ -103,26 +102,22 @@ module Valkyrie
       # @return [Valkyrie::StorageAdapter::StreamFile]
       # @raise Valkyrie::StorageAdapter::FileNotFound if nothing is found
       def find_by(id:)
-        id = if VersionId.new(id).versioned?
-               id
-             else
-               Valkyrie::ID.new(version_files(id: id).first || id.to_s)
-             end
+        version_id = resolve_current(id)
 
-        raise Valkyrie::StorageAdapter::FileNotFound unless shrine.exists?(shrine_id_for(id))
-        Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_DELIMITER).first),
-                                                 io: DelayedDownload.new(shrine, shrine_id_for(id)),
-                                                 version_id: id)
+        raise Valkyrie::StorageAdapter::FileNotFound unless version_id && shrine.exists?(shrine_id_for(version_id.id))
+        Valkyrie::StorageAdapter::StreamFile.new(id: Valkyrie::ID.new(version_id.base_identifier),
+                                                 io: DelayedDownload.new(shrine, shrine_id_for(version_id.id)),
+                                                 version_id: version_id.id)
       end
 
-      # @return VersionId A VersionId value that's resolved a current reference,
+      # @return VersionId A VersionId value that's resolved to a current version,
       #   so we can access the `version_id` and current reference.
-      def version_id(id)
+      def resolve_current(id)
         version_id = VersionId.new(id)
-        return version_id unless version_id.versioned? && version_id.reference?
-        id = Valkyrie::ID.new(id.to_s.split(VersionId::VERSION_DELIMITER).first)
-        version_files(id: id).map { |f| VersionId.new(f) }
-                             .first
+        return version_id if version_id.versioned? && !version_id.reference?
+        version_files = version_files(id: Valkyrie::ID.new(version_id.base_identifier))
+        return nil if version_files.blank?
+        VersionId.new(Valkyrie::ID.new(version_files.first))
       end
 
       # Convert a non-versioned file to a version file basing on its last_modified time.
@@ -179,6 +174,11 @@ module Valkyrie
 
         def version
           string_id.split(VERSION_DELIMITER).last
+        end
+
+        # @return [String] The base identifier that is not a version
+        def base_identifier
+          string_id.split(VERSION_DELIMITER).first
         end
 
         def string_id

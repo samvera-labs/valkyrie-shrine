@@ -207,7 +207,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
   end
 
   describe "#version_id" do
-    subject(:version_id) { storage_adapter.version_id(id) }
+    subject(:version_id) { storage_adapter.resolve_current(id) }
 
     before do
       uploaded_file
