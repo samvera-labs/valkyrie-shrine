@@ -29,18 +29,17 @@ module Valkyrie
       # @param id [Valkyrie::ID]
       # @return [Array(Valkyrie::StorageAdapter::StreamFile)]
       def find_versions(id:)
-        version_files(id: id)
-          .map { |f| find_by(id: Valkyrie::ID.new(f)) }
+        version_files(id: id).map { |f| find_by(id: f) }
       end
 
       # Retireve all file versions associated with the given identifier from S3
       # @param id [Valkyrie::ID]
-      # @return [Array(String))] - list of file identifiers
+      # @return [Array(Valkyrie::ID)] - list of file identifiers
       def version_files(id:)
         shrine.list_object_ids(id_prefix: shrine_id_for(id))
               .sort
               .reverse
-              .map { |v| protocol_with_prefix + v }
+              .map { |v| Valkyrie::ID.new(protocol_with_prefix + v) }
       end
 
       # Upload a file via the VersionedShrine storage adapter with a version id assigned.
@@ -83,7 +82,7 @@ module Valkyrie
       def delete(id:)
         version_id = VersionId.new(id)
 
-        delete_ids = version_id.versioned? ? [resolve_current(id)&.id].compact : version_files(id: id).map { |f| Valkyrie::ID.new(f) }
+        delete_ids = version_id.versioned? ? [resolve_current(id)&.id].compact : version_files(id: id)
 
         delete_ids.each do |delete_id|
           shrine_id_to_delete = shrine_id_for(delete_id)

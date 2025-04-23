@@ -141,7 +141,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
 
         versions_deleted = storage_adapter.delete(id: previous_version_id)
 
-        expect(versions_deleted.first).to include(previous_version_id)
+        expect(versions_deleted.first).to eq(previous_version_id)
         expect(storage_adapter.find_versions(id: uploaded_file.id).map(&:version_id))
           .not_to include(previous_version_id)
       end
@@ -233,7 +233,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     end
   end
 
-  describe "VersionId#generate_version" do
+  describe "VersionId#new_version" do
     subject(:version_id) { Valkyrie::Storage::VersionedShrine::VersionId.new(identifier) }
 
     let(:identifier) { Valkyrie::ID.new("shrine://a/fake-id") }
