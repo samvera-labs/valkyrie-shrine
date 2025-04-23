@@ -73,8 +73,8 @@ module Valkyrie
       # @return [Valkyrie::StorageAdapter::StreamFile]
       # @raise Valkyrie::Shrine::IntegrityError if #verify_checksum is defined
       def perform_upload(id:, file:, **upload_options)
-        versioned_shrine_id = shrine_id_for(VersionId.new(id).generate_version.id)
-        upload_file(file: file, identifier: versioned_shrine_id, **upload_options)
+        shrine_id = shrine_id_for(VersionId.new(id).new_version)
+        upload_file(file: file, identifier: shrine_id, **upload_options)
       end
 
       # Delete the versioned file or delete all versions in S3 associated with the given identifier.
@@ -126,7 +126,7 @@ module Valkyrie
       def migrate_to_versioned(id:)
         shrine_id = shrine_id_for(id)
         last_modified = shrine.object(shrine_id).last_modified
-        version_id = VersionId.new(id).generate_version(timestamp: last_modified).id
+        version_id = VersionId.new(id).new_version(timestamp: last_modified)
         shrine.move_to(id: shrine_id, destination_id: shrine_id_for(version_id))
         version_id
       end
@@ -144,23 +144,13 @@ module Valkyrie
           @id = id
         end
 
-        # Generate new version identifier basing on the given identifier, which could be the original file identifier like
+        # Create new version identifier basing on the given identifier, which could be the original file identifier like
         #   shrine://[resource_id]/[uuid], or a version identifier like shrine://[resource_id]/[uuid]_v-1694195675462560794.
         # @param timestamp [Time]
-        # @return [VersionID]
-        def generate_version(timestamp: nil)
-          version_timestam = timestamp.respond_to?(:strftime) ? timestamp.strftime("%s%L") : timestamp || current_timestamp
-          id_string = if versioned?
-                        string_id.gsub(version, version_timestam)
-                      else
-                        string_id + VERSION_DELIMITER + version_timestam
-                      end
-
-          self.class.new(Valkyrie::ID.new(id_string))
-        end
-
-        def current_timestamp
-          Time.now.utc.strftime("%s%L")
+        # @return [String]
+        def new_version(timestamp: nil)
+          version_timestamp = (timestamp&.utc || Time.now.utc).strftime("%s%L")
+          versioned? ? string_id.gsub(version, version_timestamp) : string_id + VERSION_DELIMITER + version_timestamp
         end
 
         # @return [Boolean] Whether this id is referential (e.g. "current") or absolute (e.g. a timestamp)

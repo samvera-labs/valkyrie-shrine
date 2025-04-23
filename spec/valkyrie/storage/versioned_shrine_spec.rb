@@ -239,14 +239,14 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     let(:identifier) { Valkyrie::ID.new("shrine://a/fake-id") }
 
     it "creates a version id" do
-      expect(version_id.generate_version.string_id).to include("_v-")
+      expect(version_id.new_version).to include("_v-")
     end
 
     context "with a timstamp" do
       let(:timestamp) { Time.now.utc - 1 / 24.0 }
 
       it "creates a version id" do
-        expect(version_id.generate_version(timestamp: timestamp).string_id)
+        expect(version_id.new_version(timestamp: timestamp))
           .to eq("#{identifier}_v-#{timestamp.strftime('%s%L')}")
       end
     end
@@ -256,8 +256,8 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
 
       it "creates a new version id" do
         expect(version_id.version).to eq("1694195675462560794")
-        expect(version_id.generate_version.string_id).to include("_v-")
-        expect(version_id.generate_version.version).not_to eq("1694195675462560794")
+        expect(version_id.new_version).to include("_v-")
+        expect(version_id.new_version).not_to eq("1694195675462560794")
       end
     end
   end
