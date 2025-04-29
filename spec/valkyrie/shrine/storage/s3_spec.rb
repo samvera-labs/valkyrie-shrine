@@ -117,8 +117,8 @@ RSpec.describe Valkyrie::Shrine::Storage::S3 do
 
     let(:version1) { storage_prefix.blank? ? "#{object_id}_v-1" : "#{storage_prefix}/#{object_id}_v-1" }
     let(:version2) { storage_prefix.blank? ? "#{object_id}_v-2" : "#{storage_prefix}/#{object_id}_v-2" }
-    let(:object_version1) { double(bucket_name: bucket, key: version1) }
-    let(:object_version2) { double(bucket_name: bucket, key: version2) }
+    let(:object_version1) { instance_double(Aws::S3::Object, bucket_name: bucket, key: version1) }
+    let(:object_version2) { instance_double(Aws::S3::Object, bucket_name: bucket, key: version2) }
 
     context "with no storage prefix" do
       let(:storage_prefix) { nil }

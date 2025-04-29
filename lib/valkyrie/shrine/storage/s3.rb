@@ -50,14 +50,14 @@ module Valkyrie
 
         private
 
-        # @ return list of object id's
-        # @param objects [Array(Aws::S3::Object)]
-        def object_ids_for(objects)
-          keys = objects.map(&:key)
-          return keys if prefix.blank?
+          # @ return list of object id's
+          # @param objects [Array(Aws::S3::Object)]
+          def object_ids_for(objects)
+            keys = objects.map(&:key)
+            return keys if prefix.blank?
 
-          keys.map { |k| k.delete_prefix("#{prefix}/") }
-        end
+            keys.map { |k| k.delete_prefix("#{prefix}/") }
+          end
       end
     end
   end
