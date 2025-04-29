@@ -95,7 +95,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
       let(:shrine_id_uploaded) { uploaded_file.id.to_s.sub(/^#{protocol_with_prefix}/, "") }
 
       it "renames the file to a versioned file" do
-        expect(uploaded_file.version_id.to_s).not_to include("_v-")
+        expect(uploaded_file.version_id.to_s).not_to include("/v-")
 
         expect(s3_adapter.list_object_ids(id_prefix: shrine_id_uploaded).last).to eq(shrine_id_uploaded)
 
@@ -103,7 +103,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
 
         expect(list_object_ids.size).to eq(2)
         expect(list_object_ids.last).not_to eq(shrine_id_uploaded)
-        expect(list_object_ids.last).to include("#{shrine_id_uploaded}_v-")
+        expect(list_object_ids.last).to include("#{shrine_id_uploaded}/v-")
         expect(list_object_ids.first).to include(uploaded_version.id.to_s.split(protocol_with_prefix).last)
       end
     end
@@ -169,7 +169,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     let!(:shrine_version_id) { uploaded_version.version_id.to_s.split(protocol).last }
 
     it "raises FileNotFound error" do
-      expect { storage_adapter.delete(id: "a_fake_id_v-version-id") }
+      expect { storage_adapter.delete(id: "a_fake_id/v-version-id") }
         .to raise_error Valkyrie::StorageAdapter::FileNotFound
     end
 
@@ -225,7 +225,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     let(:identifier) { Valkyrie::ID.new("shrine://a/fake-id") }
 
     it "creates a version id" do
-      expect(version_id.new_version).to include("_v-")
+      expect(version_id.new_version).to include("/v-")
     end
 
     context "with a timstamp" do
@@ -233,17 +233,17 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
 
       it "creates a version id" do
         expect(version_id.new_version(timestamp: timestamp))
-          .to eq("#{identifier}_v-#{timestamp.strftime('%s%L')}")
+          .to eq("#{identifier}/v-#{timestamp.strftime('%Y%m%d%H%M%S%L')}")
       end
     end
 
     context "with a version id" do
-      let(:identifier) { Valkyrie::ID.new("shrine://a/fake-id_v-1694195675462560794") }
+      let(:identifier) { Valkyrie::ID.new("shrine://a/fake-id/v-20250429142441274") }
 
       it "creates a new version id" do
-        expect(version_id.version).to eq("1694195675462560794")
-        expect(version_id.new_version).to include("_v-")
-        expect(version_id.new_version).not_to eq("1694195675462560794")
+        expect(version_id.version).to eq("20250429142441274")
+        expect(version_id.new_version).to include("/v-")
+        expect(version_id.new_version).not_to eq("20250429142441274")
       end
     end
   end

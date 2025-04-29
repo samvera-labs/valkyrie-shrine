@@ -3,7 +3,7 @@
 module Valkyrie
   module Storage
     # The VersionedShrine adapter implements versioned storage on S3 that manages versions
-    # through Shrine object id with a timestamp like shrine://[resource_id]/[UUID]_v-[timestamp].
+    # through Shrine object id with a timestamp like shrine://[resource_id]/[UUID]/v-[timestamp].
     #
     # Example to use VersionedShrine storage adapter:
     #    shrine_s3_options = {
@@ -137,9 +137,13 @@ module Valkyrie
 
       # A class that holds a version id and methods for knowing things about it.
       # Examples of version ids in this adapter:
-      #   * shrine://[resource_id]/[uuid]_v-1694195675462560794
+      #   * shrine://[resource_id]/[uuid]/v-20250429142441274
+      #
+      # @note With '/' as path delimiter for versions like '/v-', there is an issue with MinIO
+      #   that fails to list the version files if a file with a base identifier
+      #   that is not a version exisits along with other versioned files associated with the base identifier.
       class VersionId
-        VERSION_DELIMITER = "_v-"
+        VERSION_DELIMITER = "/v-"
 
         attr_reader :id
         def initialize(id)
@@ -147,11 +151,11 @@ module Valkyrie
         end
 
         # Create new version identifier basing on the given identifier, which could be the original file identifier like
-        #   shrine://[resource_id]/[uuid], or a version identifier like shrine://[resource_id]/[uuid]_v-1694195675462560794.
+        #   shrine://[resource_id]/[uuid], or a version identifier like shrine://[resource_id]/[uuid]/v-20250429142441274.
         # @param timestamp [Time]
         # @return [String]
         def new_version(timestamp: nil)
-          version_timestamp = (timestamp&.utc || Time.now.utc).strftime("%s%L")
+          version_timestamp = (timestamp&.utc || Time.now.utc).strftime("%Y%m%d%H%M%S%L")
           versioned? ? string_id.gsub(version, version_timestamp) : string_id + VERSION_DELIMITER + version_timestamp
         end
 
