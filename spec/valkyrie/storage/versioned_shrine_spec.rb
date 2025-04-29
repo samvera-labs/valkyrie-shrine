@@ -174,16 +174,16 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
   end
 
   describe "#delete" do
-    before do
-      uploaded_file
-      uploaded_version
+    let!(:shrine_id_uploaded) { uploaded_file.id.to_s.split(protocol).last }
+    let!(:shrine_version_id) { uploaded_version.version_id.to_s.split(protocol).last }
+
+    it "raises FileNotFound error" do
+      expect { storage_adapter.delete(id: "a_fake_id_v-version-id") }
+        .to raise_error Valkyrie::StorageAdapter::FileNotFound
     end
 
     context "a versioned file assiciated with the given identifier" do
       subject(:list_object_ids) { s3_adapter.list_object_ids(id_prefix: shrine_id_uploaded).sort.reverse }
-
-      let(:shrine_id_uploaded) { uploaded_file.id.to_s.split(protocol).last }
-      let(:shrine_version_id) { uploaded_version.version_id.to_s.split(protocol).last }
 
       it "deletes the versioned file" do
         versions_deleted = storage_adapter.delete(id: uploaded_version.version_id).map(&:to_s)
@@ -198,10 +198,13 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
       let!(:version_files) { storage_adapter.version_files(id: uploaded_file.id) }
 
       it "deletes all version files" do
-        expect(storage_adapter.version_files(id: uploaded_file.id).size).to eq(2)
-        expect(storage_adapter.delete(id: uploaded_file.id).map(&:to_s))
+        versions_deleted = storage_adapter.delete(id: uploaded_file.id).map(&:to_s)
+
+        expect(versions_deleted)
           .to contain_exactly(version_files.first.to_s,
                               version_files.last.to_s)
+        expect(s3_adapter.list_object_ids(id_prefix: shrine_id_uploaded))
+          .to be_empty
       end
     end
   end

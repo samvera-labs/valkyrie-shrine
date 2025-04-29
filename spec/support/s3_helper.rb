@@ -42,6 +42,15 @@ class S3Helper
     }
   end
 
+  def delete_objects
+    lambda { |context|
+      bucket = context.params[:bucket]
+      objs = context.params[:delete][:objects]
+      objs.map { |obj| obj[:key] }.each { |k| s3_cache[bucket].delete(k) }
+      {}
+    }
+  end
+
   def head_object
     lambda { |context|
       bucket = context.params[:bucket]
@@ -96,6 +105,7 @@ class S3Helper
         create_bucket: create_bucket,
         copy_object: copy_object,
         delete_object: delete_object,
+        delete_objects: delete_objects,
         head_object: head_object,
         list_objects_v2: list_objects_v2,
         get_object: get_object,

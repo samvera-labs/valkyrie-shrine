@@ -16,6 +16,37 @@ RSpec.describe Valkyrie::Shrine::Storage::S3 do
     s3_cache[bucket] = {}
   end
 
+  describe "#list_objects" do
+    let(:version1) { storage_prefix.blank? ? "#{object_id}_v-1" : "#{storage_prefix}/#{object_id}_v-1" }
+    let(:version2) { storage_prefix.blank? ? "#{object_id}_v-2" : "#{storage_prefix}/#{object_id}_v-2" }
+
+    context "with no storage prefix" do
+      let(:storage_prefix) { nil }
+
+      before do
+        s3_cache[bucket] = { version1 => {}, version2 => {} }
+      end
+
+      it "returns object id's associated with the prefix" do
+        expect(instance.list_objects(id_prefix: object_id).map(&:key))
+          .to contain_exactly("#{object_id}_v-1", "#{object_id}_v-2")
+      end
+    end
+
+    context "with storage prefix" do
+      let(:storage_prefix) { "1234" }
+
+      before do
+        s3_cache[bucket] = { version1 => {}, version2 => {} }
+      end
+
+      it "returns object id's associated with the prefix" do
+        expect(instance.list_objects(id_prefix: object_id).map { |obj| obj.key.delete_prefix("#{storage_prefix}/") })
+          .to contain_exactly("#{object_id}_v-1", "#{object_id}_v-2")
+      end
+    end
+  end
+
   describe "#list_object_ids" do
     let(:version1) { storage_prefix.blank? ? "#{object_id}_v-1" : "#{storage_prefix}/#{object_id}_v-1" }
     let(:version2) { storage_prefix.blank? ? "#{object_id}_v-2" : "#{storage_prefix}/#{object_id}_v-2" }
@@ -77,6 +108,69 @@ RSpec.describe Valkyrie::Shrine::Storage::S3 do
         destination_key = instance.move_to(id: object_id, destination_id: destination_id)
         expect(destination_key).to end_with(destination_storage_id)
         expect(s3_cache[bucket].keys).to contain_exactly(destination_storage_id)
+      end
+    end
+  end
+
+  describe "#delete_objects" do
+    subject(:objects_deleted) { instance.delete_objects(objects_to_delete) }
+
+    let(:version1) { storage_prefix.blank? ? "#{object_id}_v-1" : "#{storage_prefix}/#{object_id}_v-1" }
+    let(:version2) { storage_prefix.blank? ? "#{object_id}_v-2" : "#{storage_prefix}/#{object_id}_v-2" }
+    let(:object_version1) { double(bucket_name: bucket, key: version1) }
+    let(:object_version2) { double(bucket_name: bucket, key: version2) }
+
+    context "with no storage prefix" do
+      let(:storage_prefix) { nil }
+      let(:objects_to_delete) { [object_version1] }
+
+      before do
+        s3_cache[bucket] = { version1 => {}, version2 => {} }
+      end
+
+      it "deletes an object" do
+        expect { objects_deleted }
+          .to change { s3_cache[bucket].size }
+          .from(2)
+          .to(1)
+      end
+
+      context "with list of objects" do
+        let(:objects_to_delete) { [object_version1, object_version2] }
+
+        it "deletes all objects" do
+          expect { objects_deleted }
+            .to change { s3_cache[bucket].size }
+            .from(2)
+            .to(0)
+        end
+      end
+    end
+
+    context "with storage prefix" do
+      let(:storage_prefix) { "1234" }
+      let(:objects_to_delete) { [object_version1] }
+
+      before do
+        s3_cache[bucket] = { version1 => {}, version2 => {} }
+      end
+
+      it "deletes an object" do
+        expect { objects_deleted }
+          .to change { s3_cache[bucket].size }
+          .from(2)
+          .to(1)
+      end
+
+      context "with list of objects" do
+        let(:objects_to_delete) { [object_version1, object_version2] }
+
+        it "deletes all objects" do
+          expect { objects_deleted }
+            .to change { s3_cache[bucket].size }
+            .from(2)
+            .to(0)
+        end
       end
     end
   end

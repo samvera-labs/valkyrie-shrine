@@ -79,18 +79,13 @@ module Valkyrie
       # Delete the versioned file or delete all versions in S3 associated with the given identifier.
       # @param id [Valkyrie::ID]
       # @return [Array(Valkyrie::ID)] - file id's that are deleted.
+      # @raise Valkyrie::StorageAdapter::FileNotFound if nothing is found
       def delete(id:)
-        version_id = VersionId.new(id)
+        objects = objects_to_delete(id)
+        raise Valkyrie::StorageAdapter::FileNotFound if objects.blank?
 
-        delete_ids = version_id.versioned? ? [resolve_current(id)&.id].compact : version_files(id: id)
-
-        delete_ids.each do |delete_id|
-          shrine_id_to_delete = shrine_id_for(delete_id)
-          next unless shrine.exists?(shrine_id_to_delete)
-
-          shrine.delete(shrine_id_to_delete)
-        end
-        delete_ids
+        shrine.delete_objects(objects)
+              .map { |obj_id| Valkyrie::ID.new(protocol_with_prefix + obj_id) }
       end
 
       # Find the file associated with the given version identifier
@@ -117,6 +112,18 @@ module Valkyrie
         version_files = version_files(id: Valkyrie::ID.new(version_id.base_identifier))
         return nil if version_files.blank?
         VersionId.new(Valkyrie::ID.new(version_files.first))
+      end
+
+      # @param id [Valkyrie::ID]
+      # @return [Array(Aws::S3::Object)] list of objects
+      def objects_to_delete(id)
+        shrine_id = shrine_id_for(id)
+        version_id = VersionId.new(id)
+        return shrine.list_objects(id_prefix: shrine_id).to_a unless version_id.versioned?
+
+        version_id = resolve_current(id) if version_id.reference?
+        shrine_id = shrine_id_for(version_id.id)
+        shrine.exists?(shrine_id) ? [shrine.object(shrine_id)] : []
       end
 
       # Convert a non-versioned file to a version file basing on its last_modified time.
