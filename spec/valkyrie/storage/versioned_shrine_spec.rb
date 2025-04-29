@@ -110,10 +110,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
   end
 
   describe "#find_by" do
-    before do
-      uploaded_file
-      uploaded_version
-    end
+    before { uploaded_version }
 
     it "find the latest versioned file" do
       expect(storage_adapter.find_by(id: uploaded_file.id))
@@ -124,10 +121,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
   describe "#find_versions" do
     subject(:find_versions) { storage_adapter.find_versions(id: uploaded_file.id) }
 
-    before do
-      uploaded_file
-      uploaded_version
-    end
+    before { uploaded_version }
 
     it "find all active versions" do
       expect(find_versions.size).to eq(2)
@@ -151,10 +145,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
   describe "#version_files" do
     subject(:version_files) { storage_adapter.version_files(id: uploaded_file.id) }
 
-    before do
-      uploaded_file
-      uploaded_version
-    end
+    before { uploaded_version }
 
     context "with all versioned files" do
       it "returns all versioned files" do
@@ -213,10 +204,7 @@ RSpec.describe Valkyrie::Storage::VersionedShrine do
     subject(:version_id) { storage_adapter.resolve_current(id) }
     let(:id) { uploaded_version.version_id }
 
-    before do
-      uploaded_file
-      uploaded_version
-    end
+    before { uploaded_version }
 
     it "returns the versioned ID" do
       expect(version_id.id).to eq(uploaded_version.version_id)
