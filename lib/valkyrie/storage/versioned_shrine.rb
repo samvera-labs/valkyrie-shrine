@@ -105,10 +105,10 @@ module Valkyrie
       end
 
       # @return VersionId A VersionId value that's resolved to a current version,
-      #   so we can access the `version_id` and current reference.
+      #   so we can access the latest version with a base identifier that is not a version.
       def resolve_current(id)
         version_id = VersionId.new(id)
-        return version_id if version_id.versioned? && !version_id.reference?
+        return version_id if version_id.versioned?
         version_files = version_files(id: Valkyrie::ID.new(version_id.base_identifier))
         return nil if version_files.blank?
         VersionId.new(Valkyrie::ID.new(version_files.first))
@@ -121,8 +121,6 @@ module Valkyrie
         version_id = VersionId.new(id)
         return shrine.list_objects(id_prefix: shrine_id).to_a unless version_id.versioned?
 
-        version_id = resolve_current(id) if version_id.reference?
-        shrine_id = shrine_id_for(version_id.id)
         shrine.exists?(shrine_id) ? [shrine.object(shrine_id)] : []
       end
 
@@ -139,11 +137,9 @@ module Valkyrie
 
       # A class that holds a version id and methods for knowing things about it.
       # Examples of version ids in this adapter:
-      #   * shrine://[resource_id]/[uuid]_v-current
       #   * shrine://[resource_id]/[uuid]_v-1694195675462560794
       class VersionId
         VERSION_DELIMITER = "_v-"
-        CURRENT_VERSION = "current"
 
         attr_reader :id
         def initialize(id)
@@ -157,11 +153,6 @@ module Valkyrie
         def new_version(timestamp: nil)
           version_timestamp = (timestamp&.utc || Time.now.utc).strftime("%s%L")
           versioned? ? string_id.gsub(version, version_timestamp) : string_id + VERSION_DELIMITER + version_timestamp
-        end
-
-        # @return [Boolean] Whether this id is referential (e.g. "current") or absolute (e.g. a timestamp)
-        def reference?
-          version == CURRENT_VERSION
         end
 
         def versioned?
