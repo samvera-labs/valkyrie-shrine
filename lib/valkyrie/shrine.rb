@@ -5,6 +5,8 @@ require 'valkyrie/storage/shrine'
 require 'valkyrie/shrine/checksum/base'
 require 'valkyrie/shrine/checksum/file_system'
 require 'valkyrie/shrine/checksum/s3'
+require 'valkyrie/shrine/storage/s3'
+require 'valkyrie/storage/versioned_shrine'
 
 module Valkyrie
   module Shrine
